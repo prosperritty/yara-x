@@ -1,5 +1,8 @@
 [
   {
+    "data": {
+      "uri": "${test_dir}/completion23.yar"
+    },
     "kind": 6,
     "label": "rule_one",
     "labelDetails": {
@@ -7,6 +10,9 @@
     }
   },
   {
+    "data": {
+      "uri": "${test_dir}/completion23.yar"
+    },
     "kind": 6,
     "label": "rule_two",
     "labelDetails": {

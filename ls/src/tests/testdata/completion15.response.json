@@ -1,5 +1,8 @@
 [
   {
+    "data": {
+      "uri": "${test_dir}/completion15.yar"
+    },
     "kind": 6,
     "label": "completion_include",
     "labelDetails": {
@@ -7,6 +10,9 @@
     }
   },
   {
+    "data": {
+      "uri": "${test_dir}/completion13.yar"
+    },
     "kind": 6,
     "label": "test",
     "labelDetails": {

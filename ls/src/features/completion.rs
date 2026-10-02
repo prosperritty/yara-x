@@ -3,8 +3,9 @@ use std::sync::Arc;
 
 use async_lsp::lsp_types::{
     CompletionContext, CompletionItem, CompletionItemKind,
-    CompletionItemLabelDetails, CompletionTriggerKind, InsertTextFormat,
-    InsertTextMode, Position, Range, TextEdit, Url,
+    CompletionItemLabelDetails, CompletionTriggerKind, Documentation,
+    InsertTextFormat, InsertTextMode, MarkupContent, MarkupKind, Position,
+    Range, TextEdit, Url,
 };
 
 use itertools::Itertools;
@@ -19,6 +20,7 @@ use crate::utils::cst_traversal::{
 };
 
 use crate::utils::modules::{get_type, ty_to_string};
+use crate::utils::rule_documentation::RuleDocumentationBuilder;
 
 const PATTERN_MODS: &[(SyntaxKind, &[&str])] = &[
     (
@@ -130,6 +132,38 @@ pub fn completion(
     Some(vec![])
 }
 
+/// Resolves additional documentation for a rule completion item.
+pub fn resolve_completion(
+    documents: Arc<DocumentStorage>,
+    mut item: CompletionItem,
+) -> CompletionItem {
+    let Some(data) = item.data.as_ref() else {
+        return item;
+    };
+
+    let Some(uri) = data
+        .get("uri")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|uri_str| Url::parse(uri_str).ok())
+    else {
+        return item;
+    };
+    let rule_name = item.label.as_str();
+
+    let Some(rule) = documents.workspace_resolve(&uri, rule_name) else {
+        return item;
+    };
+
+    let markdown =
+        RuleDocumentationBuilder::from_rule(rule_name, &rule).get_markdown();
+
+    item.documentation = Some(Documentation::MarkupContent(MarkupContent {
+        kind: MarkupKind::Markdown,
+        value: markdown,
+    }));
+    item
+}
+
 /// Collects completion suggestions for a condition block.
 fn condition_suggestions(
     cst: &CST,
@@ -162,6 +196,9 @@ fn condition_suggestions(
                             ..Default::default()
                         }),
                         kind: Some(CompletionItemKind::VARIABLE),
+                        data: Some(serde_json::json!({
+                            "uri": uri,
+                        })),
                         ..Default::default()
                     });
                 }
@@ -170,6 +207,11 @@ fn condition_suggestions(
                 documents.included_rules(cst.root(), &uri).into_iter().map(
                     |(desc, token)| CompletionItem {
                         label: token.text().to_string(),
+                        data: uri.join(&desc).ok().map(|resolved_uri| {
+                            serde_json::json!({
+                                "uri": resolved_uri,
+                            })
+                        }),
                         label_details: Some(CompletionItemLabelDetails {
                             description: Some(desc),
                             ..Default::default()

@@ -1,5 +1,8 @@
 [
   {
+    "data": {
+      "uri": "${test_dir}/completion14.yar"
+    },
     "kind": 6,
     "label": "with_for",
     "labelDetails": {
